@@ -153,7 +153,9 @@ async function addTranslations(data) {
   let store = transaction.objectStore("translations");
 
   for (let key in data) {
-      store.put({ key: key, name: data[key] });
+      if(key.length >= 2){
+        store.put({ key: key, name: data[key].replace(/\s*\(.*?\)/g, "") });
+      }
   }
 
   transaction.oncomplete = () => console.log("✅ Thêm dữ liệu hoàn tất!");
