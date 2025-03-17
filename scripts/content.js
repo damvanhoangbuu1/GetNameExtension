@@ -1,6 +1,6 @@
-﻿console.log("🔥 content.js đã được inject!");
+﻿console.log("🔥 content.js Get Name trang 69shu đã được inject!");
 
-const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.com\/(txt)\/\d+\/\d+$/;
+const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.(com|cx)\/(txt)\/\d+\/\d+$/;
 
 const createPrompt = (text) => {
   // return `${text} Phân tích tài liệu HTML được cung cấp, đại diện cho một chương của một câu chuyện. 
@@ -29,7 +29,7 @@ const createPrompt = (text) => {
 }
 
 const translateWithGemini = async (text, apiKey) => {
-  let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+  let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   let requestBody = {
     contents: [{ parts: [{ text: createPrompt(text) }] }]
