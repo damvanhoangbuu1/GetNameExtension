@@ -2,6 +2,8 @@
 
 const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.(com|cx)\/(txt)\/\d+\/\d+$/;
 
+const CONST_RETRY_COUNT = 5;
+
 const createPrompt = (text) => {
   // return `${text} Phân tích tài liệu HTML được cung cấp, đại diện cho một chương của một câu chuyện. 
   // Trích xuất tất cả các thuật ngữ kỹ thuật và tên riêng. 
@@ -28,7 +30,7 @@ const createPrompt = (text) => {
   . Ưu tiên các bản dịch theo tiêu chuẩn ngành nếu có và chỉ rõ bất kỳ thuật ngữ nào không có bản dịch tiếng Việt trực tiếp.`;
 }
 
-const translateWithGemini = async (text, apiKey) => {
+const translateWithGemini = async (text, apiKey, retry = 0) => {
   let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   let requestBody = {
@@ -55,21 +57,27 @@ const translateWithGemini = async (text, apiKey) => {
       let translatedText = result.candidates[0].content.parts[0].text;
       console.log(translatedText.replace('```json', '').replace('```', ''));
       console.log("Dịch xong:", JSON.parse(translatedText.replace('```json', '').replace('```', '')));
-      // saveTextFile(`name_${Date.now()}.txt`, translatedText);
-      setTimeout(() => { 
-        if(regex.test(document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href'))){
+      addTranslations(JSON.parse(translatedText.replace('```json', '').replace('```', '')));
+      setTimeout(() => {
+        if (regex.test(document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href'))) {
           window.location.href = document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href');
-          addTranslations(JSON.parse(translatedText.replace('```json', '').replace('```', '')));
-        }else{
-          addTranslations(JSON.parse(translatedText.replace('```json', '').replace('```', '')));
+        } else {
           exportIndexedDBToFile();
         }
-       }, 2000);
+      }, 2000);
     } else {
       console.error("Kết quả API khó tìm thấy");
     }
   } catch (error) {
     console.error("Lỗi khi gọi API:", error);
+    if (retry < CONST_RETRY_COUNT) {
+      console.log("Retry:", retry);
+      setTimeout(() => {
+        translateWithGemini(text, apiKey, retry++);
+      }, 5000);
+    } else {
+      exportIndexedDBToFile();
+    }
   }
 };
 
@@ -81,69 +89,69 @@ function saveToFile(filename, content) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  console.log("✅ File đã được lưu:", filename);
 }
 
 async function getAllTranslations() {
   return new Promise((resolve, reject) => {
-      let request = indexedDB.open("TranslationDB", 1);
-      
-      request.onsuccess = function(event) {
-          let db = event.target.result;
-          let transaction = db.transaction(["translations"], "readonly");
-          let store = transaction.objectStore("translations");
+    let request = indexedDB.open("TranslationDB", 1);
 
-          let getAllRequest = store.getAll();
-          getAllRequest.onsuccess = () => resolve(getAllRequest.result);
-          getAllRequest.onerror = () => reject("❌ Lỗi khi đọc dữ liệu!");
-      };
+    request.onsuccess = function (event) {
+      let db = event.target.result;
+      let transaction = db.transaction(["translations"], "readonly");
+      let store = transaction.objectStore("translations");
 
-      request.onerror = function() {
-          reject("❌ Lỗi khi mở IndexedDB!");
-      };
+      let getAllRequest = store.getAll();
+      getAllRequest.onsuccess = () => resolve(getAllRequest.result);
+      getAllRequest.onerror = () => reject("❌ Lỗi khi đọc dữ liệu!");
+    };
+
+    request.onerror = function () {
+      reject("❌ Lỗi khi mở IndexedDB!");
+    };
   });
 }
 
 
 async function exportIndexedDBToFile() {
   try {
-      let data = await getAllTranslations();
+    let data = await getAllTranslations();
 
-      if (data.length === 0) {
-          alert("⚠️ Không có dữ liệu để xuất!");
-          return;
-      }
+    if (data.length === 0) {
+      alert("⚠️ Không có dữ liệu để xuất!");
+      return;
+    }
 
-      // Chuyển dữ liệu thành chuỗi theo format "key=value"
-      let textContent = data.map(entry => `${entry.key}=${entry.name}`).join("\n");
+    // Chuyển dữ liệu thành chuỗi theo format "key=value"
+    let textContent = data.map(entry => `${entry.key}=${entry.name}`).join("\n");
 
-      // Lưu vào file txt
-      saveToFile(`translations${Date.now()}.txt`, textContent);
-      console.log("✅ File translations.txt đã được lưu!");
+    // Lưu vào file txt
+    saveToFile(`translations${Date.now()}.txt`, textContent);
   } catch (error) {
-      console.error(error);
+    console.error(error);
   }
 }
 
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
-      let request = indexedDB.open("TranslationDB", 1);
+    let request = indexedDB.open("TranslationDB", 1);
 
-      request.onupgradeneeded = function(event) {
-          let db = event.target.result;
-          if (!db.objectStoreNames.contains("translations")) {
-              let store = db.createObjectStore("translations", { keyPath: "key" });
-              console.log("✅ Object store 'translations' đã được tạo!");
-          }
-      };
+    request.onupgradeneeded = function (event) {
+      let db = event.target.result;
+      if (!db.objectStoreNames.contains("translations")) {
+        let store = db.createObjectStore("translations", { keyPath: "key" });
+        console.log("✅ Object store 'translations' đã được tạo!");
+      }
+    };
 
-      request.onsuccess = function(event) {
-          resolve(event.target.result);
-      };
+    request.onsuccess = function (event) {
+      resolve(event.target.result);
+    };
 
-      request.onerror = function(event) {
-          reject("❌ Lỗi mở IndexedDB:", event.target.error);
-      };
+    request.onerror = function (event) {
+      reject("❌ Lỗi mở IndexedDB:", event.target.error);
+    };
   });
 }
 
@@ -153,9 +161,9 @@ async function addTranslations(data) {
   let store = transaction.objectStore("translations");
 
   for (let key in data) {
-      if(key.length >= 2){
-        store.put({ key: key, name: data[key].replace(/\s*\(.*?\)/g, "") });
-      }
+    if (key.length >= 2 && data[key].split(" ").length > 1) {
+      store.put({ key: key, name: data[key].replace(/\s*\(.*?\)/g, "") });
+    }
   }
 
   transaction.oncomplete = () => console.log("✅ Thêm dữ liệu hoàn tất!");
