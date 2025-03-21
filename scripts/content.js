@@ -1,6 +1,4 @@
-﻿console.log("🔥 content.js Get Name trang 69shu đã được inject!");
-
-const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.(com|cx)\/(txt)\/\d+\/\d+$/;
+﻿const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.(com|cx)\/(txt)\/\d+\/\d+$/;
 
 const CONST_RETRY_COUNT = 5;
 
@@ -30,7 +28,7 @@ const createPrompt = (text) => {
   . Ưu tiên các bản dịch theo tiêu chuẩn ngành nếu có và chỉ rõ bất kỳ thuật ngữ nào không có bản dịch tiếng Việt trực tiếp.`;
 }
 
-const translateWithGemini = async (text, apiKey, retry = 0) => {
+const translateWithGemini = async (text, apiKey, retry) => {
   let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   let requestBody = {
@@ -171,6 +169,8 @@ async function addTranslations(data) {
 }
 
 const runTranslation = () => {
+  console.log(document.querySelector('h1.hide720').innerText);
+
   if (!regex.test(window.location.href)) {
     console.log("Vui lòng nhập đúng host!");
     return;
@@ -183,7 +183,7 @@ const runTranslation = () => {
     }
 
     document.querySelector('div.txtnav').innerHTML;
-    translateWithGemini(document.querySelector('div.txtnav').innerText, data.geminiApiKey);
+    translateWithGemini(document.querySelector('div.txtnav').innerText, data.geminiApiKey, 0);
   });
 }
 
