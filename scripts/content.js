@@ -1,4 +1,5 @@
-﻿const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu)\.(com|cx)\/(txt)\/\d+\/\d+$/;
+﻿const regex = /^(https?:\/\/)?(www\.)?(69shu|69shuba|69xinshu|69yuedu)\.(com|cx|net)\/(txt|r)\/[\w\/-]+(\.html)?$/;
+const regex2 = /(txt|r)\/[\w\/-]+(\.html)?$/;
 
 const CONST_RETRY_COUNT = 5;
 
@@ -57,7 +58,8 @@ const translateWithGemini = async (text, apiKey, retry) => {
       console.log("Dịch xong:", JSON.parse(translatedText.replace('```json', '').replace('```', '')));
       addTranslations(JSON.parse(translatedText.replace('```json', '').replace('```', '')));
       setTimeout(() => {
-        if (regex.test(document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href'))) {
+        if (regex.test(document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href'))
+          || regex2.test(document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href'))) {
           window.location.href = document.querySelector('div.page1 > a:nth-child(4)').getAttribute('href');
         } else {
           exportIndexedDBToFile();
@@ -182,8 +184,7 @@ const runTranslation = () => {
       return;
     }
 
-    document.querySelector('div.txtnav').innerHTML;
-    translateWithGemini(document.querySelector('div.txtnav').innerText, data.geminiApiKey, 0);
+    translateWithGemini(document.querySelector('div.txtnav')?.innerText || document.querySelector('div.content')?.innerText, data.geminiApiKey, 0);
   });
 }
 
